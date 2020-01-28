@@ -1,3 +1,4 @@
 credentials.py
 *.json
 __*
+.cache*
