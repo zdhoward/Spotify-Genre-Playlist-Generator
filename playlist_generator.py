@@ -73,7 +73,7 @@ def main():
 
     data = load_track_data()
     if data == False or force_data:
-        data = analyze_track_list(tracks[1500:3000])
+        data = analyze_track_list(tracks[3000:])
 
     print("\n\nUsed Genres:")
     print(data.keys())
