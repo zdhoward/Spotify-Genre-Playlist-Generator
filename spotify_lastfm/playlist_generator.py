@@ -69,11 +69,35 @@ def main():
     tracks = load_track_list()
     if tracks == False:
         force_data = True
-        tracks = build_track_list(sp)
+        tracks = build_track_list()
 
     data = load_track_data()
     if data == False or force_data:
-        data = analyze_track_list(tracks[3000:])
+        data = analyze_track_list(tracks[:10])
+
+    data_ids = []
+    for genre in data.keys():
+        for item in data[genre]:
+            data_ids.append(item["id"])
+
+    print("IDs:")
+    print(data_ids)
+
+    todo = []
+    for track in tracks:
+        if track["track"]["id"] not in data_ids:
+            todo.append(
+                {
+                    "artist": track["track"]["artists"][0]["name"],
+                    "song": track["track"]["name"],
+                    "id": track["track"]["id"],
+                }
+            )
+
+    new_data = analyze_track_list(todo)
+    data += new_data
+
+    print(data)
 
     print("\n\nUsed Genres:")
     print(data.keys())
@@ -82,6 +106,11 @@ def main():
     # print("\n".join(unused_genres))
     for genre in unused_genres:
         print(f'"{genre}",')
+
+    print("Tracks:")
+    print(tracks[0]["track"]["artists"][0]["name"], tracks[0]["track"]["name"])
+    print("\nData:")
+    print(data["Hip-Hop"][0]["artist"], data["Hip-Hop"][0]["song"])
 
     # track = fm.get_track("Aesop Rock", "Cat Food")
     # track = fm.get_track("Iron Maiden", "Fear of the Dark")
@@ -173,11 +202,12 @@ def analyze_track_list(_tracks):
     for track in _tracks:
         artist = track["track"]["artists"][0]["name"]
         song = track["track"]["name"]
+        id = track["track"]["id"]
         genre = categorize_track(artist, song)
         if genre != False:
             if genre not in data.keys():
                 data[genre] = []
-            data[genre].append({"artist": artist, "song": song})
+            data[genre].append({"artist": artist, "song": song, "id": id})
         # analyze track and get genre
         # add track to the genre list
     save_track_data(data)
@@ -232,6 +262,14 @@ def save_track_data(_data):
     except:
         log("ERROR - Failed To Save")
         return False
+
+
+def update_track_data(_tracks):
+    log("Updating Track Data")
+    data = load_track_data()
+    for track in _tracks:
+        pass
+    print(data)
 
 
 def generate_playlists():

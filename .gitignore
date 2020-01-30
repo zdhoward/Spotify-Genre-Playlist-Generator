@@ -2,3 +2,9 @@ credentials.py
 *.json
 __*
 .cache*
+
+
+*/credentials.py
+*/*.json
+*/__*
+*/.cache*
