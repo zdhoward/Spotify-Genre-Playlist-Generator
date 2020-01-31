@@ -1,5 +1,5 @@
 ARTIST_CATEGORIES = {
-    "Hip Hop": [],
+    "Hip Hop": ["Kodak Black"],
     "Synthwave": [],
     "Synth Pop": [],
     "New Wave": [],
