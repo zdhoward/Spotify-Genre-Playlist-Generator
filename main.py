@@ -25,7 +25,7 @@ sp = None
 uncategorized_artists = []
 
 show_uncategorized_artists = True
-force_rebuild = False
+force_rebuild = True
 include_date_in_name = False
 
 
