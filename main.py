@@ -7,6 +7,8 @@ import spotipy.util as util
 import os
 from os.path import exists
 from time import sleep
+from random import shuffle
+from datetime import datetime
 
 from credentials import USERNAME, SPOTIFY_API_ID, SPOTIFY_API_SECRET
 from definitions import ARTIST_CATEGORIES
@@ -15,35 +17,81 @@ speed = 50
 tracks_file = "tracks.json"
 analysis_file = "analysis.json"
 
+playlist_prefix = "GEN-"
+date_postfix = "-" + datetime.today().strftime("%Y-%m-%d")
+
 sp = None
 
 uncategorized_artists = []
 
+show_uncategorized_artists = True
+force_rebuild = False
+include_date_in_name = False
+
 
 def main():
-    global sp
+    global sp, uncategorized_artists
     sp = connect_to_spotify()
 
-    if exists(tracks_file):  ## this is for debug only
+    if exists(tracks_file) and not force_rebuild:
         tracks = load_json(tracks_file)
     else:
-        tracks = build_track_list()[:100]
+        tracks = build_track_list()
 
-    ## update analyzed data to categorize song into all applicable playlists
-    if exists(analysis_file):
-        saved_analysis = load_json(analysis)
-        analysis = update_analysis(saved_analysis, tracks)
-    else:
-        analysis = analyze_track_list(tracks)
+    analysis = analyze_track_list(tracks)
 
     ## report any issues
 
     ## generate playlists
+    for playlist in analysis.keys():
+        generate_playlist(analysis[playlist], playlist)
 
-    for item in analysis["Hip Hop"]:
-        id, artist, song = get_data_from_track_list_item(item)
-        print(id, artist, song)
-    # print(uncategorized_artists)
+    ### debug
+    if show_uncategorized_artists:
+        print("Uncategorized Artists")
+        for artist in sorted(uncategorized_artists):
+            print(f'"{artist}",')
+
+
+def generate_playlist(_track_list, _name, _track_length=0):
+    global sp
+
+    # maximum add 100 tracks at a time
+    if _track_length == 0 or _track_length > 100:
+        _track_length = 100
+
+    playlist_name = (
+        f"{playlist_prefix}{_name}{date_postfix if include_date_in_name else ''}"
+    )
+    log(f"Generating Playlist: {playlist_name}")
+    tracks = _track_list
+    shuffle(tracks)
+
+    playlist = []
+    for track in tracks:
+        id, artist, song = get_data_from_track_list_item(track)
+        if len(playlist) < _track_length or _track_length == 0:
+            playlist.append(id)
+
+    # get a list of current playlists and delete any named like this
+    playlists = sp.current_user_playlists()["items"]
+    replaced = False
+
+    for each_playlist in playlists:
+        if playlist_name == each_playlist["name"]:
+            id = each_playlist["id"]
+            replaced = True
+            # edit playlist
+            # log("Replacing current playlist")
+            sp.user_playlist_replace_tracks(USERNAME, id, playlist)
+
+    if not replaced:
+        # create a new playlist with playlist
+        # log("Creating a new playlist")
+        id = sp.user_playlist_create(
+            USERNAME, playlist_name, public=False, description="Generated in Python"
+        )["id"]
+        sp.user_playlist_add_tracks(USERNAME, id, playlist)
 
 
 def analyze_track_list(_track_list):
@@ -57,6 +105,11 @@ def analyze_track_list(_track_list):
                 if playlist not in analysis.keys():
                     analysis[playlist] = []
                 analysis[playlist].append(track)
+        else:
+            id, artist, song = get_data_from_track_list_item(track)
+            if artist not in uncategorized_artists:
+                uncategorized_artists.append(artist)
+    save_json(analysis_file, analysis)
     return analysis
 
 
@@ -68,25 +121,36 @@ def categorize_track(_track):
     for category in ARTIST_CATEGORIES.keys():
         if artist in ARTIST_CATEGORIES[category]:
             categories.append(category)
-        if len(categories) < 1:
-            if artist not in uncategorized_artists:
-                uncategorized_artists.append(artist)
     return categories
 
 
 def update_analysis(_saved_analysis, _track_list):
     log("Updating Analysis")
-    saved_analysis = load_json(analysis_file)
-
     ids = []
     for category in _saved_analysis.keys():
         for item in _saved_analysis[category]:
-            ids.append(item["id"])
+            id, artist, song = get_data_from_track_list_item(item)
+            ids.append(id)
 
-    print(ids)
+    to_analyze = []
+    for track in _track_list:
+        id, artist, song = get_data_from_track_list_item(track)
+        if id not in ids:
+            to_analyze.append(track)
 
-    new_analysis = analyze_track_list(_track_list)
-    return False
+    new_data = {}
+    new_analysis = {}
+    if len(to_analyze) > 0:
+        new_analysis = analyze_track_list(to_analyze)
+        for category in ARTIST_CATEGORIES.keys():
+            new_data[category] = []
+            tracks = []
+            if category in _saved_analysis.keys():
+                tracks += _saved_analysis[category]
+            if category in new_analysis.keys():
+                tracks += new_analysis[category]
+            new_data[category] = tracks
+    return new_data
 
 
 def get_data_from_track_list_item(_item):
@@ -120,7 +184,7 @@ def load_json(_json_file):
 
 def connect_to_spotify():
     log("Connecting to Spotify")
-    scope = "user-library-read"
+    scope = "user-library-read playlist-modify-private playlist-read-private"
     os.environ["SPOTIPY_CLIENT_ID"] = SPOTIFY_API_ID
     os.environ["SPOTIPY_CLIENT_SECRET"] = SPOTIFY_API_SECRET
     os.environ["SPOTIPY_REDIRECT_URI"] = "http://www.google.com/"
