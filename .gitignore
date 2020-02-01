@@ -1,6 +1,6 @@
 credentials.py
 *.json
-__*
+__pycache__
 .cache*
 
 

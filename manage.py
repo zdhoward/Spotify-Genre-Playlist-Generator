@@ -1,5 +1,6 @@
 from main import tracks_file, analysis_file, load_json, save_json
 from definitions import ARTIST_CATEGORIES
+from main import run
 
 
 def main():
@@ -9,17 +10,22 @@ def main():
     count = 0
     interface = "--------------------\n"
     interface += "[00]: SKIP\n"
-    opts = []
+    opts = ["SKIP"]
     for category in categories:
         count += 1
         opts.append(category)
-        interface += f"[{str(count).zfill(2)}]: {category}\n"
+        if category == "IGNORE":
+            interface += f"[~~]: {category}"
+        else:
+            interface += f"[{str(count).zfill(2)}]: {category}\n"
 
     print(interface)
 
     answers = {}
     for artist in artists:
         opt = input(f"\rArtist => {artist}: ")
+        if "~" in str(opt):
+            opt = len(opts) - 1
         if opt != "0" and opt != "q" and opt != "":
             answers[artist] = opts[int(opt)]
         elif opt == "q":
@@ -54,10 +60,55 @@ def get_all_uncategorized_artists():
 
 
 def add_new_categorized_artists(_answers):
+    categories = {}
     for answer in _answers.keys():
         category = _answers[answer]
         artist = answer
 
+        if category not in categories.keys():
+            categories[category] = []
+        categories[category].append(artist)
+    add_definitions(categories)
+
+
+def add_definitions(_definitions):
+    data = ARTIST_CATEGORIES
+    print("Adding:")
+    print(_definitions)
+    ans = input("Would you like to continue to add these? (y/n): ")
+    if ans != "":
+        if ans.strip()[0].lower() == "y":
+            ## add whatever to the definitions here
+
+            merged = {}
+            for key in ARTIST_CATEGORIES.keys():
+                if key in _definitions.keys():
+                    ARTIST_CATEGORIES[key] += _definitions[key]
+
+            # print("Merged:")
+            # print(ARTIST_CATEGORIES)
+
+            # format file contents
+            contents = ["ARTIST_CATEGORIES = {"]
+            for category in ARTIST_CATEGORIES.keys():
+                contents.append(f'\t"{category}": [')
+                for item in ARTIST_CATEGORIES[category]:
+                    contents.append(f'\t\t"{item}",')
+                contents.append("\t],")
+            contents.append("}")
+            # print(contents)
+
+            # write file
+            file = open("definitions.py", "w")
+            # file.writelines(contents)
+            for line in contents:
+                file.write(line + "\n")
+            file.close()
+
+            run()
+
 
 if __name__ == "__main__":
     main()
+    # load_definitions()
+    # from test_definitions import ARTIST_CATEGORIES as AC

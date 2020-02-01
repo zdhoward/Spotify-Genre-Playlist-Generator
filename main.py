@@ -24,12 +24,16 @@ sp = None
 
 uncategorized_artists = []
 
-show_uncategorized_artists = True
+show_uncategorized_artists = False
 force_rebuild = True
 include_date_in_name = False
 
 
 def main():
+    run()
+
+
+def run():
     global sp, uncategorized_artists
     sp = connect_to_spotify()
 
@@ -44,7 +48,8 @@ def main():
 
     ## generate playlists
     for playlist in analysis.keys():
-        generate_playlist(analysis[playlist], playlist)
+        if playlist != "IGNORE":
+            generate_playlist(analysis[playlist], playlist)
 
     ### debug
     if show_uncategorized_artists:
