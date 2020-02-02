@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from main import tracks_file, analysis_file, load_json, save_json
 from definitions import ARTIST_CATEGORIES
 from main import run

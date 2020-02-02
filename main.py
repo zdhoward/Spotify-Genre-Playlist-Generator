@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import json
 from json.decoder import JSONDecodeError
 
@@ -28,6 +29,11 @@ show_uncategorized_artists = False
 force_rebuild = True
 include_date_in_name = False
 
+included_types = ["tracks", "albums"]
+include_liked_tracks = True
+include_liked_albums = True
+include_followed_artists = True
+
 
 def main():
     run()
@@ -44,10 +50,8 @@ def run():
 
     analysis = analyze_track_list(tracks)
 
-    ## report any issues
-
     ## generate playlists
-    for playlist in analysis.keys():
+    for playlist in sorted(analysis.keys()):
         if playlist != "IGNORE":
             generate_playlist(analysis[playlist], playlist)
 
@@ -87,12 +91,10 @@ def generate_playlist(_track_list, _name, _track_length=0):
             id = each_playlist["id"]
             replaced = True
             # edit playlist
-            # log("Replacing current playlist")
             sp.user_playlist_replace_tracks(USERNAME, id, playlist)
 
     if not replaced:
         # create a new playlist with playlist
-        # log("Creating a new playlist")
         id = sp.user_playlist_create(
             USERNAME, playlist_name, public=False, description="Generated in Python"
         )["id"]
@@ -120,7 +122,6 @@ def analyze_track_list(_track_list):
 
 def categorize_track(_track):
     global uncategorized_artists
-    # log("Categorizing Track")
     categories = []
     id, artist, song = get_data_from_track_list_item(_track)
     for category in ARTIST_CATEGORIES.keys():
@@ -158,11 +159,10 @@ def update_analysis(_saved_analysis, _track_list):
     return new_data
 
 
-def get_data_from_track_list_item(_item):
-    track = _item["track"]
-    artist = track["artists"][0]["name"]
-    song = track["name"]
-    id = track["id"]
+def get_data_from_track_list_item(_track):
+    artist = _track["artists"][0]["name"]
+    song = _track["name"]
+    id = _track["id"]
     return id, artist, song
 
 
@@ -189,7 +189,7 @@ def load_json(_json_file):
 
 def connect_to_spotify():
     log("Connecting to Spotify")
-    scope = "user-library-read playlist-modify-private playlist-read-private"
+    scope = "user-library-read playlist-modify-private playlist-read-private user-follow-read"
     os.environ["SPOTIPY_CLIENT_ID"] = SPOTIFY_API_ID
     os.environ["SPOTIPY_CLIENT_SECRET"] = SPOTIFY_API_SECRET
     os.environ["SPOTIPY_REDIRECT_URI"] = "http://www.google.com/"
@@ -204,30 +204,136 @@ def connect_to_spotify():
 
 
 def build_track_list():
+    log("Building New Track List")
+    to_merge = []
+    if "tracks" in included_types:
+        to_merge.append(get_saved_tracks())
+    if "albums" in included_types:
+        to_merge.append(get_saved_albums())
+    if include_followed_artists:
+        to_merge.append(get_followed_artists())
+
+    all_tracks = merge_track_lists(to_merge)
+
+    # if len(to_merge) == 2:
+    #    all_tracks = merge_track_lists(to_merge[0], to_merge[1])
+    # elif len(to_merge) == 1:
+    #    all_tracks = to_merge[0]
+    save_json(tracks_file, all_tracks)
+    return all_tracks
+
+
+def get_saved_albums():
     global sp
-    log("Building Track List")
-    total = 0
+
     offset = 0
-    page_limit = 50
-    tracks = []
+    limit = 50
+    total = 0
+
+    saved_tracks = []
     while True:
-        page = sp.current_user_saved_tracks(limit=page_limit, offset=offset)
+        page = sp.current_user_saved_albums(limit=50, offset=0)
         if total == 0:
             total = page["total"]
-        tracks += page["items"]
-        if offset + page_limit >= total:
-            leftovers = total - offset
-            tracks += sp.current_user_saved_tracks(limit=leftovers, offset=offset)[
-                "items"
-            ]
+
+        for album in page["items"]:
+            for track in album["album"]["tracks"]["items"]:
+                saved_tracks.append(track)
+
+        offset += limit
+        if offset >= total:
             break
-        offset += page_limit
-        print(offset, "/", total, end="\r")
-        if speed > 0:
-            sleep(speed / 1000)
-    print(offset + leftovers, "/", total)
-    save_json(tracks_file, tracks)
-    return tracks
+        if offset + limit > total:
+            limit = total - offset
+        print(f"Liked Albums: {offset} / {total}", end="\r")
+    print(f"Liked Albums: {offset} / {total}")
+    return saved_tracks
+
+
+def get_saved_tracks():
+    global sp
+
+    offset = 0
+    limit = 50
+    total = 0
+
+    saved_tracks = []
+
+    while True:
+        page = sp.current_user_saved_tracks(limit=limit, offset=offset)
+        for item in page["items"]:
+            saved_tracks.append(item["track"])
+
+        if total == 0:
+            total = page["total"]
+
+        offset += limit
+        if offset >= total:
+            break
+        if offset + limit > total:
+            limit = total - offset
+        print(f"Liked Tracks: {offset} / {total}", end="\r")
+    print(f"Liked Tracks: {offset} / {total}")
+    return saved_tracks
+
+
+def get_followed_artists():
+    global sp
+    last = None
+    total = 0
+    current = 0
+    limit = 50
+
+    all_artists = []
+    while True:
+        followed = sp.current_user_followed_artists(limit=limit, after=last)["artists"]
+        artists = followed["items"]
+        for artist in artists:
+            all_artists.append(artist)
+            last = artist["id"]
+
+        if total == 0:
+            total = followed["total"]
+
+        current += limit
+        if current >= total:
+            break
+        if current + limit > total:
+            limit = total - current
+
+        print(f"Followed Artists: {current} / {total}", end="\r")
+    print(f"Followed Artists: {current} / {total}")
+
+    saved_tracks = []
+    for artist in all_artists[:1]:
+        # print(artist["id"])
+        albums = sp.artist_albums(artist["id"], limit=50)["items"]
+        for album in albums:
+            # print(album["id"])
+            tracks = sp.album_tracks(album["id"])
+            for track in tracks["items"]:
+                # print(track["name"])
+                saved_tracks.append(track)
+    print(f"Followed Artist Tracks: {len(saved_tracks)} / {len(saved_tracks)}")
+    return saved_tracks
+
+    # print(artists[0].keys())
+    # for artist in art
+
+
+def merge_two_track_lists(_left, _right):
+    all_tracks = _left
+    for item in _right:
+        if item not in all_tracks:
+            all_tracks.append(item)
+    return all_tracks
+
+
+def merge_track_lists(_lists):
+    all_tracks = []
+    for list in _lists:
+        all_tracks = merge_two_track_lists(all_tracks, list)
+    return all_tracks
 
 
 def log(_msg):
@@ -236,3 +342,4 @@ def log(_msg):
 
 if __name__ == "__main__":
     main()
+    # sp = connect_to_spotify()
