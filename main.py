@@ -29,10 +29,9 @@ show_uncategorized_artists = False
 force_rebuild = True
 include_date_in_name = False
 
-included_types = ["tracks", "albums"]
 include_liked_tracks = True
 include_liked_albums = True
-include_followed_artists = True
+include_followed_artists = False
 
 
 def main():
@@ -206,9 +205,9 @@ def connect_to_spotify():
 def build_track_list():
     log("Building New Track List")
     to_merge = []
-    if "tracks" in included_types:
+    if include_liked_tracks:
         to_merge.append(get_saved_tracks())
-    if "albums" in included_types:
+    if include_liked_albums:
         to_merge.append(get_saved_albums())
     if include_followed_artists:
         to_merge.append(get_followed_artists())

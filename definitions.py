@@ -282,6 +282,7 @@ ARTIST_CATEGORIES = {
     "Synth Pop": ["Gary Numan", "Depeche Mode", "Kraftwerk", "Thomas Dolby",],
     "New Wave": ["New Order", "Joy Division",],
     "Heavy": [
+        "Death Grips",
         "All That Remains",
         "Mindless Self Indulgence",
         "Gojira",
@@ -412,7 +413,16 @@ ARTIST_CATEGORIES = {
         "Agoria",
         "Arnaud Rebotini",
     ],
-    "Gangsta Rap": ["N.W.A.", "Eazy-E", "Ice Cube", "Project Pat", "Geto Boys", "Onyx"],
+    "Gangsta Rap": [
+        "N.W.A.",
+        "Nas",
+        "Big L",
+        "Eazy-E",
+        "Ice Cube",
+        "Project Pat",
+        "Geto Boys",
+        "Onyx",
+    ],
     "Mumble Rap": [
         "Lil Uzi Vert",
         "Playboi Carti",
