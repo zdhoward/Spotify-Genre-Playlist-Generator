@@ -4,6 +4,7 @@ from json.decoder import JSONDecodeError
 
 import spotipy
 import spotipy.util as util
+from spotipy import oauth2
 
 import os
 from os.path import exists
@@ -13,6 +14,8 @@ from datetime import datetime
 
 from credentials import USERNAME, SPOTIFY_API_ID, SPOTIFY_API_SECRET
 from definitions import ARTIST_CATEGORIES
+
+from callbacks import wait_for_http_callback, visit_url
 
 speed = 50
 tracks_file = "tracks.json"
@@ -191,13 +194,13 @@ def connect_to_spotify():
     scope = "user-library-read playlist-modify-private playlist-read-private user-follow-read"
     os.environ["SPOTIPY_CLIENT_ID"] = SPOTIFY_API_ID
     os.environ["SPOTIPY_CLIENT_SECRET"] = SPOTIFY_API_SECRET
-    os.environ["SPOTIPY_REDIRECT_URI"] = "http://www.google.com/"
+    os.environ["SPOTIPY_REDIRECT_URI"] = "http://localhost:5000/callback"
     # erase cache and prompt for user permission
     try:
-        token = util.prompt_for_user_token(USERNAME, scope)
+        token = get_user_token(USERNAME, scope)
     except:
         os.remove(f".cache-{USERNAME}")
-        token = util.prompt_for_user_token(USERNAME, scope)
+        token = get_user_token(USERNAME, scope)
 
     return spotipy.Spotify(auth=token)
 
@@ -214,10 +217,6 @@ def build_track_list():
 
     all_tracks = merge_track_lists(to_merge)
 
-    # if len(to_merge) == 2:
-    #    all_tracks = merge_track_lists(to_merge[0], to_merge[1])
-    # elif len(to_merge) == 1:
-    #    all_tracks = to_merge[0]
     save_json(tracks_file, all_tracks)
     return all_tracks
 
@@ -305,19 +304,13 @@ def get_followed_artists():
 
     saved_tracks = []
     for artist in all_artists[:1]:
-        # print(artist["id"])
         albums = sp.artist_albums(artist["id"], limit=50)["items"]
         for album in albums:
-            # print(album["id"])
             tracks = sp.album_tracks(album["id"])
             for track in tracks["items"]:
-                # print(track["name"])
                 saved_tracks.append(track)
     print(f"Followed Artist Tracks: {len(saved_tracks)} / {len(saved_tracks)}")
     return saved_tracks
-
-    # print(artists[0].keys())
-    # for artist in art
 
 
 def merge_two_track_lists(_left, _right):
@@ -335,10 +328,70 @@ def merge_track_lists(_lists):
     return all_tracks
 
 
-def log(_msg):
-    print(_msg)
+def get_user_token(
+    username,
+    scope=None,
+    client_id=None,
+    client_secret=None,
+    redirect_uri=None,
+    cache_path=None,
+):
+    """ prompts the user to login if necessary and returns
+        the user token suitable for use with the spotipy.Spotify
+        constructor
+        Parameters:
+         - username - the Spotify username
+         - scope - the desired scope of the request
+         - client_id - the client id of your app
+         - client_secret - the client secret of your app
+         - redirect_uri - the redirect URI of your app
+         - cache_path - path to location to save tokens
+    """
+
+    if not client_id:
+        client_id = os.getenv("SPOTIPY_CLIENT_ID")
+
+    if not client_secret:
+        client_secret = os.getenv("SPOTIPY_CLIENT_SECRET")
+
+    if not redirect_uri:
+        redirect_uri = os.getenv("SPOTIPY_REDIRECT_URI")
+
+    if not client_id:
+        raise spotipy.SpotifyException(550, -1, "no credentials set")
+
+    cache_path = cache_path or ".cache-" + username
+    sp_oauth = oauth2.SpotifyOAuth(
+        client_id, client_secret, redirect_uri, scope=scope, cache_path=cache_path
+    )
+
+    # try to get a valid token for this user, from the cache,
+    # if not in the cache, the create a new (this will send
+    # the user to a web page where they can authorize this app)
+
+    token_info = sp_oauth.get_cached_token()
+
+    if not token_info:
+        auth_url = sp_oauth.get_authorize_url()
+        try:
+            visit_url(auth_url)
+        except BaseException:
+            print("Please navigate here: %s" % auth_url)
+
+        response = wait_for_http_callback(5000)
+
+        code = sp_oauth.parse_response_code(response)
+        token_info = sp_oauth.get_access_token(code)
+    # Auth'ed API request
+    if token_info:
+        return token_info["access_token"]
+    else:
+        return None
+
+
+def log(_msg, end=None):
+    print(_msg, end=end)
 
 
 if __name__ == "__main__":
     main()
-    # sp = connect_to_spotify()
