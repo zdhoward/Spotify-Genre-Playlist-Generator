@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import curses
+from main import run
+from manage import manage
 
 
 def draw_menu(stdscr):
@@ -28,7 +30,7 @@ def draw_menu(stdscr):
             response = process_menu_input(c)
 
             if response == "GENERATE_PLAYLIST":
-                mode = generate
+                mode = "generate"
                 response = True
             elif response == "MANAGE_CATEGORIES":
                 mode = "manage"
@@ -64,6 +66,16 @@ def draw_menu(stdscr):
                 pass
             elif response == "DISPLAY_DATA_DEFINITIONS":
                 pass
+        elif mode == "generate":
+            stdscr.clear()
+            stop_curses()
+            run()
+            mode = "main"
+        elif mode == "manage":
+            stdscr.clear()
+            stop_curses()
+            manage()
+            mode = "main"
 
         else:
             break
@@ -83,7 +95,7 @@ def process_menu_input(_char):
     return msg
 
 
-def process_menu_input(_char):
+def process_display_input(_char):
     if _char == ord("t"):
         msg = "DISPLAY_DATA_TRACKS"
     elif _char == ord("a"):
@@ -99,6 +111,13 @@ def process_menu_input(_char):
 
 def main():
     curses.wrapper(draw_menu)
+
+
+def stop_curses():
+    # curses.nocbreak()
+    # curses.echo()
+    curses.endwin()
+    pass
 
 
 if __name__ == "__main__":

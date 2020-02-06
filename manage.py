@@ -1,10 +1,20 @@
 #!/usr/bin/env python3
-from main import tracks_file, analysis_file, load_json, save_json
+from main import (
+    tracks_file,
+    analysis_file,
+    load_json,
+    save_json,
+    analyze_track_list,
+    run,
+)
 from definitions import ARTIST_CATEGORIES
-from main import run
 
 
 def main():
+    manage()
+
+
+def manage():
     artists = get_all_uncategorized_artists()
     categories = ARTIST_CATEGORIES.keys()
 
@@ -62,7 +72,7 @@ def get_all_uncategorized_artists():
         if artist not in categorized_artists:
             uncategorized_artists.append(artist)
 
-    return uncategorized_artists
+    return sorted(uncategorized_artists)
 
 
 def add_new_categorized_artists(_answers):
@@ -98,8 +108,11 @@ def add_definitions(_definitions):
             contents = ["ARTIST_CATEGORIES = {"]
             for category in ARTIST_CATEGORIES.keys():
                 contents.append(f'\t"{category}": [')
+                artists_per_category = []
                 for item in ARTIST_CATEGORIES[category]:
-                    contents.append(f'\t\t"{item}",')
+                    if item not in artists_per_category:
+                        artists_per_category.append(item)
+                        contents.append(f'\t\t"{item}",')
                 contents.append("\t],")
             contents.append("}")
             # print(contents)
@@ -111,7 +124,9 @@ def add_definitions(_definitions):
                 file.write(line + "\n")
             file.close()
 
-            run()
+            # run()
+            track_list = load_json(tracks_file)
+            analyze_track_list(track_list)
 
 
 if __name__ == "__main__":
