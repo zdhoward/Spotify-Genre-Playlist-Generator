@@ -13,12 +13,17 @@ def main():
     interface += "[00]: SKIP\n"
     opts = ["SKIP"]
     for category in categories:
-        count += 1
-        opts.append(category)
+        if category != "IGNORE":
+            count += 1
+            opts.append(category)
+            # interface += f"[~~]: {category}"
+            # else:
+            interface += f"[{str(count).zfill(2)}]: {category}\n"
+
+    for category in categories:
         if category == "IGNORE":
             interface += f"[~~]: {category}"
-        else:
-            interface += f"[{str(count).zfill(2)}]: {category}\n"
+            opts.append(category)
 
     print(interface)
 
@@ -41,14 +46,14 @@ def get_all_uncategorized_artists():
 
     all_artists = []
     for track in all_tracks:
-        artist = track["track"]["artists"][0]["name"]
+        artist = track["artists"][0]["name"]
         if artist not in all_artists:
             all_artists.append(artist)
 
     categorized_artists = []
     for category in all_categorized.keys():
         for track in all_categorized[category]:
-            artist = track["track"]["artists"][0]["name"]
+            artist = track["artists"][0]["name"]
             if artist not in categorized_artists:
                 categorized_artists.append(artist)
 

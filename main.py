@@ -34,7 +34,7 @@ include_date_in_name = False
 
 include_liked_tracks = True
 include_liked_albums = True
-include_followed_artists = False
+include_followed_artists = True
 
 
 def main():
