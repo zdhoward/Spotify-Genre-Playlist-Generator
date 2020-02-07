@@ -330,6 +330,7 @@ ARTIST_CATEGORIES = {
 		"Toro y Moi",
 		"Valentino Khan",
 		"X-Press 2",
+		"Delta Heavy",
 	],
 	"Indie": [
 		"Cake",
@@ -383,6 +384,7 @@ ARTIST_CATEGORIES = {
 		"The Ataris",
 		"OFF!",
 		"Wavves",
+		"Primus",
 	],
 	"Chiptunes": [
 		"MisfitChris",
