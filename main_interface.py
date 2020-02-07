@@ -17,7 +17,7 @@ def draw_menu(stdscr):
             stdscr.addstr(2, 2, "[q] = quit")
             stdscr.addstr(3, 2, "[g] = generate playlists")
             stdscr.addstr(4, 2, "[m] = manage categorization")
-            stdscr.addstr(5, 2, "[d] = display")
+            # stdscr.addstr(5, 2, "[d] = display")
 
             msg = "Press a key to select an option:"
             if str(response) != "True":
@@ -86,8 +86,8 @@ def process_menu_input(_char):
         msg = "GENERATE_PLAYLIST"
     elif _char == ord("m"):
         msg = "MANAGE_CATEGORIES"
-    elif _char == ord("d"):
-        msg = "DISPLAY_DATA"
+    # elif _char == ord("d"):
+    #    msg = "DISPLAY_DATA"
     elif _char == ord("q"):
         msg = False
     else:
