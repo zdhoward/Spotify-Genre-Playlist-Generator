@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from main import (
+from generator import (
     tracks_file,
     analysis_file,
     load_json,
