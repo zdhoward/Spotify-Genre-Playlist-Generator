@@ -109,7 +109,7 @@ def add_definitions(_definitions):
             for category in ARTIST_CATEGORIES.keys():
                 contents.append(f'\t"{category}": [')
                 artists_per_category = []
-                for item in ARTIST_CATEGORIES[category]:
+                for item in sorted(ARTIST_CATEGORIES[category]):
                     if item not in artists_per_category:
                         artists_per_category.append(item)
                         contents.append(f'\t\t"{item}",')
