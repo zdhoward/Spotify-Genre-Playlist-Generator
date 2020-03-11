@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 import json
 from json.decoder import JSONDecodeError
 
@@ -16,6 +16,8 @@ from credentials import USERNAME, SPOTIFY_API_ID, SPOTIFY_API_SECRET
 from definitions import ARTIST_CATEGORIES
 
 from callbacks import wait_for_http_callback, visit_url
+
+from argparse import ArgumentParser
 
 speed = 50
 tracks_file = "tracks.json"
@@ -36,9 +38,16 @@ include_liked_tracks = True
 include_liked_albums = True
 include_followed_artists = True
 
+##parse arguments
+parser = ArgumentParser()
+parser.add_argument("-q", "--quiet", help="Run in quiet mode", action="store_true")
+args = vars(parser.parse_args())
+
 
 def main():
+    print("STARTING", __file__)
     run()
+    print("ENDING", __file__)
 
 
 def run():
@@ -59,9 +68,9 @@ def run():
 
     ### debug
     if show_uncategorized_artists:
-        print("Uncategorized Artists")
+        log("Uncategorized Artists")
         for artist in sorted(uncategorized_artists):
-            print(f'"{artist}",')
+            log(f'"{artist}",')
 
 
 def generate_playlist(_track_list, _name, _track_length=0):
@@ -243,8 +252,8 @@ def get_saved_albums():
             break
         if offset + limit > total:
             limit = total - offset
-        print(f"Liked Albums: {offset} / {total}", end="\r")
-    print(f"Liked Albums: {offset} / {total}")
+        log(f"Liked Albums: {offset} / {total}", end="\r")
+    log(f"Liked Albums: {offset} / {total}")
     return saved_tracks
 
 
@@ -270,8 +279,8 @@ def get_saved_tracks():
             break
         if offset + limit > total:
             limit = total - offset
-        print(f"Liked Tracks: {offset} / {total}", end="\r")
-    print(f"Liked Tracks: {offset} / {total}")
+        log(f"Liked Tracks: {offset} / {total}", end="\r")
+    log(f"Liked Tracks: {offset} / {total}")
     return saved_tracks
 
 
@@ -299,8 +308,8 @@ def get_followed_artists():
         if current + limit > total:
             limit = total - current
 
-        print(f"Followed Artists: {current} / {total}", end="\r")
-    print(f"Followed Artists: {current} / {total}")
+        log(f"Followed Artists: {current} / {total}", end="\r")
+    log(f"Followed Artists: {current} / {total}")
 
     saved_tracks = []
     for artist in all_artists[:1]:
@@ -309,7 +318,7 @@ def get_followed_artists():
             tracks = sp.album_tracks(album["id"])
             for track in tracks["items"]:
                 saved_tracks.append(track)
-    print(f"Followed Artist Tracks: {len(saved_tracks)} / {len(saved_tracks)}")
+    log(f"Followed Artist Tracks: {len(saved_tracks)} / {len(saved_tracks)}")
     return saved_tracks
 
 
@@ -376,13 +385,12 @@ def get_user_token(
         try:
             visit_url(auth_url)
         except BaseException:
-            print("Please navigate here: %s" % auth_url)
+            log(f"Please navigate here: {auth_url}")
 
         response = wait_for_http_callback(5000)
 
         code = sp_oauth.parse_response_code(response)
         token_info = sp_oauth.get_access_token(code)
-    # Auth'ed API request
     if token_info:
         return token_info["access_token"]
     else:
@@ -390,7 +398,8 @@ def get_user_token(
 
 
 def log(_msg, end=None):
-    print(_msg, end=end)
+    if not args["quiet"]:
+        print(_msg, end=end)
 
 
 if __name__ == "__main__":
