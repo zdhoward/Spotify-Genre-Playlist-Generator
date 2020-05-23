@@ -1,4 +1,15 @@
 import cherrypy
+import platform
+
+os_type = platform.system()
+
+if os_type == "Linux":
+    binary_location = "/usr/bin/chromedriver"
+elif os_type == "Windows":
+    binary_location = "C:\\Windows\\chromedriver.exe"
+else:
+    print("Chromedriver for Mac OS not configured")
+    exit(1)
 
 # CONFIG = {'/callback':{'server.socket_host': '127.0.0.1','server.socket_port': 9000,'log.screen': False}}
 cherrypy.config.update({"log.screen": False})
@@ -34,9 +45,9 @@ def visit_url(_url):
 
     chrome_options = Options()
     chrome_options.add_argument("--headless")
-    chrome_options.binary_location = "/usr/bin/chromedriver"
+    chrome_options.binary_location = binary_location
 
-    driver = webdriver.Chrome(executable_path="/usr/bin/chromedriver")
+    driver = webdriver.Chrome(executable_path=binary_location)
     driver.get(_url)
     driver.implicitly_wait(3)
     return driver.current_url

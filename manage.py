@@ -9,6 +9,11 @@ from generator import (
 )
 from definitions import ARTIST_CATEGORIES
 
+from bs4 import BeautifulSoup
+import requests
+
+BASE_URL = "https://www.last.fm/music/"
+
 
 def main():
     manage()
@@ -35,11 +40,17 @@ def manage():
             interface += f"[~~]: {category}"
             opts.append(category)
 
+    interface += "\n--------------------"
+
     print(interface)
 
     answers = {}
     for artist in artists:
-        opt = input(f"\rArtist => {artist}: ")
+        bio, tags, similar_artists = get_artist_info(artist)
+        print(f"Bio:\n{bio}\n\nTags:\n{tags}\n\nSimilar Artists:\n{similar_artists}")
+        print("--------------------")
+
+        opt = input(f"\rArtist => {artist}: ").lower()
         if "~" in str(opt):
             opt = len(opts) - 1
         if opt != "0" and opt != "q" and opt != "":
@@ -118,7 +129,7 @@ def add_definitions(_definitions):
             # print(contents)
 
             # write file
-            file = open("definitions.py", "w")
+            file = open("definitions.py", "w", encoding="utf-8")
             # file.writelines(contents)
             for line in contents:
                 file.write(line + "\n")
@@ -127,6 +138,32 @@ def add_definitions(_definitions):
             # run()
             track_list = load_json(tracks_file)
             analyze_track_list(track_list)
+
+
+def get_artist_info(artist: str):
+    try:
+        soup = BeautifulSoup(
+            requests.get(BASE_URL + artist.replace(" ", "+")).text, "html.parser"
+        )
+
+        bio = (
+            soup.find("div", {"class": "wiki-block-inner"})
+            .text.replace("... readmore", "")
+            .replace("View wiki", "")
+            .strip()
+        )
+
+        tags = [tag.text for tag in soup.findAll("li", {"class": "tag"})]
+
+        similar_artists = [
+            artist.text
+            for artist in soup.find(
+                "ol", {"class": "catalogue-overview-similar-artists-full-width"}
+            ).findAll("a", {"class": "link-block-target"})
+        ]
+        return bio, tags, similar_artists
+    except:
+        return "None Found", "None Found", "None Found"
 
 
 if __name__ == "__main__":
